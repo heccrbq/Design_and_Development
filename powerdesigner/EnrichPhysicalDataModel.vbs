@@ -1,7 +1,7 @@
 '******************************************************************************
 '* File:     	EnrichPhysicalDataModel.vbs
 '* Purpose:     The script is designed to enrich the physical data model - creating partitioned historical tables and adding sorted metadata fileds.
-'* Version:   	3.4
+'* Version:   	3.5
 '* Author:	 	Bykov D.
 '******************************************************************************
 
@@ -417,7 +417,7 @@ End Sub
 ' The procedure helps to create foreign key referencing on a TABLE
 '------------------------------------------------------------------------------
 Private Sub CopyReferences(byref model, byref table, byref histTable)
-   Dim reference, histReference
+   Dim reference, histReference, column, jn, hJn
    
    For Each reference In table.OutReferences
       Set histReference = model.References.CreateNew
@@ -427,7 +427,13 @@ Private Sub CopyReferences(byref model, byref table, byref histTable)
       'histReference.ForeignKeyConstraintName = ...
       histReference.ParentTable = reference.ParentTable
       histReference.ChildTable = histTable
-      histReference.ParentKey = reference.ParentKey
+      'histReference.ParentKey = reference.ParentKey
+      'Take columns from Foreign key and find appropriate columns in hist table
+      For Each jn in reference.Joins
+         For Each hJn in histReference.Joins
+            hJn.ChildTableColumn = histTable.FindChildByCode(jn.ChildTableColumn.Code, PdPDM.cls_column)
+         Next
+      Next
    Next
    
    'Create reference between snapshot and historical table
@@ -436,7 +442,17 @@ Private Sub CopyReferences(byref model, byref table, byref histTable)
    histReference.Name = histReference.Code
    histReference.ParentTable = table
    histReference.ChildTable = histTable
-   histReference.ParentKey = table.PrimaryKey
+   'histReference.ParentKey = table.PrimaryKey
+   'Take columns from Primary key and find appropriate columns in hist table
+   If table.PrimaryKey.Columns.Count = 1 Then
+      For Each column in table.PrimaryKey.Columns
+         For Each hJn in histReference.Joins
+            hJn.ChildTableColumn = histTable.FindChildByCode(column.Code, PdPDM.cls_column)
+         Next
+      Next      
+   Else
+      Err.Raise 450        ' Wrong number of arguments or invalid property assignment
+   End If   
 End Sub
 
 '------------------------------------------------------------------------------
