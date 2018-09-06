@@ -1,7 +1,7 @@
 '******************************************************************************
 '* File:     	EnrichPhysicalDataModel.vbs
 '* Purpose:     The script is designed to enrich the physical data model - creating partitioned historical tables and adding sorted metadata fileds.
-'* Version:   	3.1
+'* Version:   	3.2
 '* Author:	 	Bykov D.
 '******************************************************************************
 
@@ -13,6 +13,7 @@ InteractiveMode = im_Batch
 ' DECLARE GLOBAL CONSTANTS [gc]
 '------------------------------------------------------------------------------
 ' Global Object's Constants
+const gcMainUser = "CORE"
 const gcMainLoaderUser = "LOADER_DWH"
 const gcHistoricalTablePostfix = "_H"
 const gcPrimaryKeyConstraintPrefix = "PK_"
@@ -69,18 +70,21 @@ End Sub
 ' The procedure creates a new user if he doesn't exist
 '------------------------------------------------------------------------------
 Private Sub CreateUserIfNotExist(byref model)
-   Dim loaderUser : loaderUser = gcMainLoaderUser
+   Dim user, pwdUser
+   Dim userArray : userArray = Array(gcMainUser, gcMainLoaderUser)
    
    'Create main loader user
-   If FindUser(model, loaderUser) Is Nothing Then
-      Output "Create User : " & loaderUser
+   For Each user in userArray
+      If FindUser(model, user) Is Nothing Then
+         Output "Create User : " & user
       
-      Set loaderUser = model.Users.CreateNew
-      loaderUser.Name = gcMainLoaderUser
-      loaderUser.Code = gcMainLoaderUser
-   Else
-      Output "User " & loaderUser & " found."
-   End If
+         Set pwdUser = model.Users.CreateNew
+         pwdUser.Name = user
+         pwdUser.Code = user
+      Else
+         Output "User " & user & " found."
+      End If
+   Next
 End Sub
 
 '------------------------------------------------------------------------------
@@ -112,8 +116,8 @@ Private Sub RecreateHistoricalTables(byref model)
          'Copy keys & indexes
          CopyKeysAndIndexesToHist table, histTable         
          
-         'Copy dependencies
-         CopyDependencies model, table, histTable
+         'Copy outer dependencies
+         CopyReferences model, table, histTable
       End If
    Next
 End Sub
@@ -373,7 +377,7 @@ End Sub
 '------------------------------------------------------------------------------
 ' The procedure helps to create foreign key referencing on a TABLE
 '------------------------------------------------------------------------------
-Private Sub CopyDependencies(byref model, byref table, byref histTable)
+Private Sub CopyReferences(byref model, byref table, byref histTable)
    Dim reference, histReference
    
    For Each reference In table.OutReferences
@@ -386,6 +390,14 @@ Private Sub CopyDependencies(byref model, byref table, byref histTable)
       histReference.ChildTable = histTable
       histReference.ParentKey = reference.ParentKey
    Next
+   
+   'Create reference between snapshot and historical table
+   Set histReference = model.References.CreateNew
+   histReference.Code = histTable.Code & "S"
+   histReference.Name = histReference.Code
+   histReference.ParentTable = table
+   histReference.ChildTable = histTable
+   histReference.ParentKey = table.PrimaryKey
 End Sub
 
 '------------------------------------------------------------------------------
