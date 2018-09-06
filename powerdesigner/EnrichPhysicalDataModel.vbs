@@ -1,7 +1,7 @@
 '******************************************************************************
 '* File:     	EnrichPhysicalDataModel.vbs
 '* Purpose:     The script is designed to enrich the physical data model - creating partitioned historical tables and adding sorted metadata fileds.
-'* Version:   	3.2
+'* Version:   	3.3
 '* Author:	 	Bykov D.
 '******************************************************************************
 
@@ -106,6 +106,9 @@ Private Sub RecreateHistoricalTables(byref model)
       
          'Copy table
          Set histTable = CopyTableToHist(model, table)
+         
+         'Sort columns
+         SortColumns table
          
          'Copy columns
          CopyColumnsToHist table, histTable
@@ -241,6 +244,39 @@ Private Function CopyTableToHist(byref model, byref sourceTable)
 End Function
 
 '------------------------------------------------------------------------------
+' The procedure puts the service columns in the first place
+'------------------------------------------------------------------------------
+Private Sub SortColumns(byref table)
+   Dim column, index
+   Dim idEtlLogIndex, flagDeletedIndex, codeSourceSystemIndex, datetimeFromIndex
+   
+   index = 0
+   'The order of the service columns when sorting
+   idEtlLogIndex = 0             ' Position of the field MD_ID_ETL_LOG
+   flagDeletedIndex = 1          ' Position of the field MD_FLAG_DELETED
+   codeSourceSystemIndex = 2     ' Position of the field MD_CODE_SOURCE_SYSTEM
+   datetimeFromIndex = 3         ' Position of the field MD_DATETIME_FROM
+
+   'Loop on columns of table
+   For Each column In table.Columns
+      'If we found a service column and it isn't in its place
+      'It's important to have the same order of conditions as creating service columns
+      If column.Code = "MD_ID_ETL_LOG" and index <> idEtlLogIndex Then
+         'First attribute of method Move, equal 0, doesn't swap rows and puts the row in front of all
+         table.Columns.Move idEtlLogIndex, index
+      ElseIf column.Code = "MD_FLAG_DELETED" and index <> flagDeletedIndex Then
+         table.Columns.Move flagDeletedIndex, index
+      ElseIf column.Code = "MD_CODE_SOURCE_SYSTEM" and index <> codeSourceSystemIndex Then
+         table.Columns.Move codeSourceSystemIndex, index
+      ElseIf column.Code = "MD_DATETIME_FROM" and index <> datetimeFromIndex Then
+         table.Columns.Move datetimeFromIndex, index
+      End If
+      
+      index = index + 1
+   Next
+End Sub
+
+'------------------------------------------------------------------------------
 ' The procedure copies all columns from sourceTable to TargetTable and creates missing service columns
 '------------------------------------------------------------------------------
 Private Sub CopyColumnsToHist(byref sourceTable, byref targetTable)
@@ -303,8 +339,8 @@ Private Sub CreateColumn(byref table, code, dataType, mandatory, comment)
    'If column doesn't exist then create the new
    If table.FindChildByCode(code, PdPDM.cls_column) Is Nothing Then
 	   Set column = table.Columns.CreateNew
-		column.Name = code
 		column.Code = code
+		column.SetCodeToName()
       column.Mandatory = mandatory
 		column.DataType = dataType
 		column.Comment = comment
