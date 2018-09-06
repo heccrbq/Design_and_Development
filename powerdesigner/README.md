@@ -8,7 +8,9 @@ Just download the scripts and perform like Tools -> Execute commands -> Edit/run
 
 ## Usage
 
-TODO: Write usage instructions
+EnrichPhysicalDataModel
+pre checks
+post checks
 
 ## Contributing
 
@@ -21,10 +23,16 @@ TODO: Write usage instructions
 ## History
 
 EnrichPhysicalDataModel:
-  v1.0 - Creating historical tables and addition metedata fields
-  v2.0 - Creating historical tables and addition metedata fields, creating NOT NULL constraints and copying PK & UNIQUE keys
-         into historical tables, distribution of grants.
-  v3.0 - 
+  v1.0 - (STABLE) Creating historical tables and addition metedata fields.
+  v2.0 - (STABLE) Creating historical tables and addition metedata fields, creating NOT NULL constraints and 
+         copying PK & UNIQUE keys into historical tables, distribution of grants.
+  v3.0 - (BETA) bug fix
+  v3.1 - (STABLE) Creating partitioned historical tables and addition metedata fields, creating NOT NULL and 
+         Reference constraints, copying PK & UNIQUE keys into historical tables, distribution of grants.
+  v3.2 - (BETA) bug fix
+  v3.3 - (BETA) bug fix
+  v3.4 - (BETA) bug fix
+  v3.5 - (STABLE) 
 
 ## Credits
 
