@@ -1,7 +1,7 @@
 '******************************************************************************
 '* File:     	EnrichPhysicalDataModel.vbs
 '* Purpose:     The script is designed to enrich the physical data model - creating partitioned historical tables and adding sorted metadata fileds.
-'* Version:   	3.3
+'* Version:   	3.4
 '* Author:	 	Bykov D.
 '******************************************************************************
 
@@ -107,11 +107,14 @@ Private Sub RecreateHistoricalTables(byref model)
          'Copy table
          Set histTable = CopyTableToHist(model, table)
          
-         'Sort columns
+         'Sort columns of the snapshot table
          SortColumns table
          
          'Copy columns
          CopyColumnsToHist table, histTable
+         
+         'Sort columns of the historical table. All services columns will be sorted but gcPartitionColumNameHistTable
+         SortColumns histTable
          
          'Partitioning. Split table by range using as a part_key_column gcPartitionColumNameHistTable
          PartitionByRangeInterval histTable
